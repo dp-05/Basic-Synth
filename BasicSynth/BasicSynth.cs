@@ -16,7 +16,6 @@ namespace BasicSynth
     {
         private const int SAMPLE_RATE = 44100;
         private const short BITS_PER_SAMPLE = 16;
-        float frequency = 440f;
         Random random = new Random();
 
         public BasicSynth()
@@ -26,6 +25,9 @@ namespace BasicSynth
 
         private void BasicSynthForm_KeyDown(object sender, KeyEventArgs e)
         {
+            IEnumerable<Oscillator> oscillators = this.Controls.OfType<Oscillator>();
+            float frequency = 440f;
+            int oscillatorsCount = oscillators.Count();
             short[] wave = new short[SAMPLE_RATE];
             byte[] binaryWave = new byte[SAMPLE_RATE * sizeof(short)];
             
@@ -73,7 +75,7 @@ namespace BasicSynth
                     break;
             }
 
-            foreach (Oscillator oscillator in this.Controls.OfType<Oscillator>())
+            foreach (Oscillator oscillator in oscillators)
             {
                 int samplesPerWaveLength = (int)(SAMPLE_RATE / frequency);
                 short ampStep = (short)((short.MaxValue * 2) / samplesPerWaveLength);
@@ -85,15 +87,15 @@ namespace BasicSynth
                     case WaveForm.Sine:
                         for (int i = 0; i < SAMPLE_RATE; i++)
                         {
-                            wave[i] = Convert.ToInt16(short.MaxValue * Math.Sin(((Math.PI * 2 * frequency) / SAMPLE_RATE) * i));
+                            wave[i] += Convert.ToInt16((short.MaxValue * Math.Sin(((Math.PI * 2 * frequency) / SAMPLE_RATE) * i)) / oscillatorsCount);
                         }
                         break;
 
                     case WaveForm.Square:
                         for (int i = 0; i < SAMPLE_RATE; i++)
                         {
-                            wave[i] = Convert.ToInt16(short.MaxValue * Math.Sign(Math.Sin((Math.PI * 2 * frequency) / SAMPLE_RATE * i)));
-                        }
+                            wave[i] += Convert.ToInt16((short.MaxValue * Math.Sign(Math.Sin((Math.PI * 2 * frequency) / SAMPLE_RATE * i))) / oscillatorsCount);
+                }
                         break;
 
                     case WaveForm.Saw:
@@ -103,7 +105,7 @@ namespace BasicSynth
                             for (int j = 0; j < samplesPerWaveLength && i < SAMPLE_RATE; j++)
                             {
                                 tempSample += ampStep;
-                                wave[i++] = Convert.ToInt16(tempSample);
+                                wave[i++] += Convert.ToInt16(tempSample / oscillatorsCount);
                             }
                             i--;
                         }
@@ -113,20 +115,20 @@ namespace BasicSynth
                         tempSample = -short.MaxValue;
                         for (int i = 0; i < SAMPLE_RATE; i++)
                         {
-                            if (Math.Abs(tempSample + ampStep) > short.MaxValue)
+                            if (Math.Abs(tempSample + ampStep) > short.MaxValue / oscillatorsCount)
                             {
                                 ampStep = (short)-ampStep;
                             }
                             tempSample += ampStep;
-                            wave[i] = Convert.ToInt16(tempSample);
+                            wave[i] += Convert.ToInt16(tempSample);
                         }
                         break;
 
                     case WaveForm.Noise:
                         for (int i = 0; i < SAMPLE_RATE; i++)
                         {
-                            wave[i] = (short)random.Next(-short.MaxValue, short.MaxValue);
-                        }
+                            wave[i] += Convert.ToInt16(random.Next(-short.MaxValue, short.MaxValue) / oscillatorsCount);
+                }
                         break;
                 }
             }
